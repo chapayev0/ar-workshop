@@ -2,7 +2,7 @@
 <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
 
 <style>
-    .arjs-loader {
+    .loader {
         height: 100%;
         width: 100%;
         position: absolute;
@@ -16,7 +16,7 @@
         flex-direction: column;
     }
 
-    .arjs-loader div {
+    .loader div {
         text-align: center;
         font-size: 1.25em;
         color: white;
@@ -40,11 +40,20 @@
     }
 </style>
 
-<body style="margin : 0px; overflow: hidden;">
-    <div class="arjs-loader">
-        <div>Loading, please wait...</div>
+<body style="margin: 0px; overflow: hidden;">
+
+    <!-- Loaders for each model -->
+    <div id="loader-1" class="loader">
+        <div>Loading Model 1, please wait...</div>
         <div class="progress-bar">
-            <div class="progress-bar-inner"></div>
+            <div id="progress-1" class="progress-bar-inner"></div>
+        </div>
+    </div>
+
+    <div id="loader-2" class="loader">
+        <div>Loading Model 2, please wait...</div>
+        <div class="progress-bar">
+            <div id="progress-2" class="progress-bar-inner"></div>
         </div>
     </div>
 
@@ -54,21 +63,28 @@
         embedded
         arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
     >
+        <!-- First NFT marker -->
         <a-nft
             type="nft"
-            url="https://github.com/chapayev0/ar-workshop/blob/main/trex-image-big.jpeg"
+            url="https://github.com/chapayev0/ar-workshop/blob/main/marker1.jpeg"
             smooth="true"
             smoothCount="10"
             smoothTolerance=".01"
             smoothThreshold="5"
         >
-            <a-entity
-                gltf-model="https://github.com/chapayev0/ar-workshop/blob/main/scene.glb"
-                scale="5 5 5"
-                position="50 150 0"
-                id="model"
-            >
-            </a-entity>
+            <a-entity gltf-model="" scale="5 5 5" position="50 150 0" id="model-1"></a-entity>
+        </a-nft>
+
+        <!-- Second NFT marker -->
+        <a-nft
+            type="nft"
+            url="https://github.com/chapayev0/ar-workshop/blob/main/marker2.jpeg"
+            smooth="true"
+            smoothCount="10"
+            smoothTolerance=".01"
+            smoothThreshold="5"
+        >
+            <a-entity gltf-model="" scale="3 3 3" position="0 100 0" id="model-2"></a-entity>
         </a-nft>
 
         <a-entity camera></a-entity>
@@ -76,40 +92,46 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", () => {
-            const model = document.getElementById('model');
-            const progressBarInner = document.querySelector('.progress-bar-inner');
+            const models = [
+                { id: 'model-1', url: 'https://raw.githubusercontent.com/chapayev0/ar-workshop/main/scene.glb', loader: 'loader-1', progress: 'progress-1' },
+                { id: 'model-2', url: 'https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Models/2.0/Duck/glTF/Duck.gltf', loader: 'loader-2', progress: 'progress-2' }
+            ];
 
-            // Fetch the 3D model with progress tracking
-            const modelUrl = 'https://raw.githubusercontent.com/chapayev0/ar-workshop/main/scene.glb';
-            fetch(modelUrl)
-                .then(response => {
-                    const totalSize = response.headers.get('Content-Length');  // Get total file size in bytes
-                    const reader = response.body.getReader();
-                    let loadedBytes = 0;
+            models.forEach(({ id, url, loader, progress }) => {
+                const model = document.getElementById(id);
+                const progressBarInner = document.getElementById(progress);
+                const loaderDiv = document.getElementById(loader);
 
-                    // Read the file stream and update progress bar
-                    reader.read().then(function processChunk({ done, value }) {
-                        if (done) {
-                            console.log('File fully loaded');
-                            return;
+                // Fetch the model with progress tracking
+                fetch(url)
+                    .then(response => {
+                        const totalSize = response.headers.get('Content-Length');
+                        if (!totalSize) return response.arrayBuffer();
+
+                        const reader = response.body.getReader();
+                        let loadedBytes = 0;
+
+                        function readChunk({ done, value }) {
+                            if (done) return;
+
+                            loadedBytes += value.length;
+                            const progressPercent = (loadedBytes / totalSize) * 100;
+                            progressBarInner.style.width = `${progressPercent}%`;
+
+                            return reader.read().then(readChunk);
                         }
 
-                        // Update loaded bytes
-                        loadedBytes += value.length;
+                        return reader.read().then(readChunk).then(() => response.arrayBuffer());
+                    })
+                    .then(arrayBuffer => {
+                        const blob = new Blob([arrayBuffer], { type: 'model/gltf-binary' });
+                        const objectURL = URL.createObjectURL(blob);
+                        model.setAttribute('gltf-model', objectURL);
 
-                        // Calculate the progress percentage
-                        const progress = loadedBytes / totalSize;
-                        progressBarInner.style.width = `${progress * 100}%`;
-
-                        // Continue reading
-                        reader.read().then(processChunk);
-                    });
-                })
-                .catch(err => console.error('Error fetching model:', err));
-
-            // Listen for the model loaded event
-            model.addEventListener('model-loaded', () => {
-                document.querySelector(".arjs-loader").style.display = "none";
+                        // Hide loader immediately after download completes
+                        loaderDiv.style.display = 'none';
+                    })
+                    .catch(err => console.error(`Error fetching ${id}:`, err));
             });
         });
     </script>
