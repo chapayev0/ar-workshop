@@ -1,62 +1,12 @@
-<script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@1c2407b26c61958baa93967b5412487cd94b290b/dist/aframe-master.min.js"></script>
-<script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
-
-<style>
-    .loader {
-        height: 100%;
-        width: 100%;
-        position: absolute;
-        top: 0;
-        left: 0;
-        background-color: rgba(0, 0, 0, 0.8);
-        z-index: 9999;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-direction: column;
-    }
-
-    .loader div {
-        text-align: center;
-        font-size: 1.25em;
-        color: white;
-        margin-bottom: 10px;
-    }
-
-    .progress-bar {
-        width: 80%;
-        height: 20px;
-        background-color: #ddd;
-        border-radius: 10px;
-        overflow: hidden;
-    }
-
-    .progress-bar-inner {
-        height: 100%;
-        width: 0;
-        background-color: #76c7c0;
-        border-radius: 10px;
-        transition: width 0.3s;
-    }
-</style>
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AR.js Example</title>
+    <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@1c2407b26c61958baa93967b5412487cd94b290b/dist/aframe-master.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+</head>
 <body style="margin: 0px; overflow: hidden;">
-
-    <!-- Loaders for each model -->
-    <div id="loader-1" class="loader">
-        <div>Loading Model 1, please wait...</div>
-        <div class="progress-bar">
-            <div id="progress-1" class="progress-bar-inner"></div>
-        </div>
-    </div>
-
-    <div id="loader-2" class="loader">
-        <div>Loading Model 2, please wait...</div>
-        <div class="progress-bar">
-            <div id="progress-2" class="progress-bar-inner"></div>
-        </div>
-    </div>
-
     <a-scene
         vr-mode-ui="enabled: false;"
         renderer="logarithmicDepthBuffer: true;"
@@ -72,7 +22,7 @@
             smoothTolerance=".01"
             smoothThreshold="5"
         >
-            <a-entity gltf-model="" scale="5 5 5" position="50 150 0" id="model-1"></a-entity>
+            <a-entity gltf-model="https://raw.githubusercontent.com/chapayev0/ar-workshop/main/scene.glb" scale="5 5 5" position="50 150 0" id="model-1"></a-entity>
         </a-nft>
 
         <!-- Second NFT marker -->
@@ -84,55 +34,10 @@
             smoothTolerance=".01"
             smoothThreshold="5"
         >
-            <a-entity gltf-model="" scale="3 3 3" position="0 100 0" id="model-2"></a-entity>
+            <a-entity gltf-model="https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Models/2.0/Duck/glTF/Duck.gltf" scale="3 3 3" position="0 100 0" id="model-2"></a-entity>
         </a-nft>
 
         <a-entity camera></a-entity>
     </a-scene>
-
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const models = [
-                { id: 'model-1', url: 'https://raw.githubusercontent.com/chapayev0/ar-workshop/main/scene.glb', loader: 'loader-1', progress: 'progress-1' },
-                { id: 'model-2', url: 'https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Models/2.0/Duck/glTF/Duck.gltf', loader: 'loader-2', progress: 'progress-2' }
-            ];
-
-            models.forEach(({ id, url, loader, progress }) => {
-                const model = document.getElementById(id);
-                const progressBarInner = document.getElementById(progress);
-                const loaderDiv = document.getElementById(loader);
-
-                // Fetch the model with progress tracking
-                fetch(url)
-                    .then(response => {
-                        const totalSize = response.headers.get('Content-Length');
-                        if (!totalSize) return response.arrayBuffer();
-
-                        const reader = response.body.getReader();
-                        let loadedBytes = 0;
-
-                        function readChunk({ done, value }) {
-                            if (done) return;
-
-                            loadedBytes += value.length;
-                            const progressPercent = (loadedBytes / totalSize) * 100;
-                            progressBarInner.style.width = `${progressPercent}%`;
-
-                            return reader.read().then(readChunk);
-                        }
-
-                        return reader.read().then(readChunk).then(() => response.arrayBuffer());
-                    })
-                    .then(arrayBuffer => {
-                        const blob = new Blob([arrayBuffer], { type: 'model/gltf-binary' });
-                        const objectURL = URL.createObjectURL(blob);
-                        model.setAttribute('gltf-model', objectURL);
-
-                        // Hide loader immediately after download completes
-                        loaderDiv.style.display = 'none';
-                    })
-                    .catch(err => console.error(`Error fetching ${id}:`, err));
-            });
-        });
-    </script>
 </body>
+</html>
