@@ -79,11 +79,35 @@
             const model = document.getElementById('model');
             const progressBarInner = document.querySelector('.progress-bar-inner');
 
-            model.addEventListener('model-progress', (event) => {
-                const progress = event.detail.loaded / event.detail.total;
-                progressBarInner.style.width = `${progress * 100}%`;
-            });
+            // Fetch the 3D model with progress tracking
+            const modelUrl = 'https://raw.githubusercontent.com/chapayev0/ar-workshop/main/scene.glb';
+            fetch(modelUrl)
+                .then(response => {
+                    const totalSize = response.headers.get('Content-Length');  // Get total file size in bytes
+                    const reader = response.body.getReader();
+                    let loadedBytes = 0;
 
+                    // Read the file stream and update progress bar
+                    reader.read().then(function processChunk({ done, value }) {
+                        if (done) {
+                            console.log('File fully loaded');
+                            return;
+                        }
+
+                        // Update loaded bytes
+                        loadedBytes += value.length;
+
+                        // Calculate the progress percentage
+                        const progress = loadedBytes / totalSize;
+                        progressBarInner.style.width = `${progress * 100}%`;
+
+                        // Continue reading
+                        reader.read().then(processChunk);
+                    });
+                })
+                .catch(err => console.error('Error fetching model:', err));
+
+            // Listen for the model loaded event
             model.addEventListener('model-loaded', () => {
                 document.querySelector(".arjs-loader").style.display = "none";
             });
